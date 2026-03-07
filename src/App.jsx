@@ -66,14 +66,33 @@ const STEPS = [
 ];
 
 function OnboardingScreen({ user, onComplete }) {
-  const [step, setStep] = useState(0); const [answers, setAnswers] = useState({}); const [loading, setLoading] = useState(false);
-  const current = STEPS[step]; const value = answers[current.key] ?? "";
+  const [step, setStep] = useState(0); const [answers, setAnswers] = useState({}); const [loading, setLoading] = useState(false); const [saveError, setSaveError] = useState("");
+  const current = STEPS[step];
+  const rawValue = answers[current.key] ?? "";
+  const value = rawValue;
+  const hasValue = current.type === "number" ? (rawValue !== "" && rawValue !== null) : !!rawValue;
+
   async function handleNext() {
-    if (!value && value !== 0) return;
+    if (!hasValue) return;
     if (step + 1 < STEPS.length) { setStep(step + 1); return; }
-    setLoading(true);
-    const { error } = await supabase.from("profiles").update({ ...answers, onboarding_complete: true }).eq("id", user.id);
-    if (!error) onComplete({ ...answers, id: user.id, onboarding_complete: true });
+    setLoading(true); setSaveError("");
+    const payload = { ...answers };
+    if (payload.age) payload.age = Number(payload.age);
+    if (payload.sleep_hours) payload.sleep_hours = Number(payload.sleep_hours);
+    if (payload.stress_level) payload.stress_level = Number(payload.stress_level);
+    try {
+      const { error } = await supabase.from("profiles").update({ ...payload, onboarding_complete: true }).eq("id", user.id);
+      if (error) {
+        console.error("Onboarding save error:", error);
+        setSaveError("Couldn't save — " + error.message + ". Continuing anyway...");
+        setTimeout(() => onComplete({ ...payload, id: user.id, onboarding_complete: true }), 1500);
+      } else {
+        onComplete({ ...payload, id: user.id, onboarding_complete: true });
+      }
+    } catch(e) {
+      console.error("Onboarding exception:", e);
+      onComplete({ ...answers, id: user.id, onboarding_complete: true });
+    }
     setLoading(false);
   }
   return (
@@ -87,6 +106,7 @@ function OnboardingScreen({ user, onComplete }) {
           <h2 style={{ fontSize:24, fontWeight:700, margin:0, color:"#f1f5f9" }}>{current.q}</h2>
           <p style={{ color:"#475569", fontSize:13, marginTop:8 }}>Step {step+1} of {STEPS.length}</p>
         </div>
+        {saveError && <div style={S.error}>{saveError}</div>}
         <div style={{ marginBottom:24 }}>
           {current.type === "select" ? (
             <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
@@ -94,11 +114,11 @@ function OnboardingScreen({ user, onComplete }) {
             </div>
           ) : (
             <input style={S.input} type={current.type} placeholder={current.placeholder} value={value} autoFocus
-              onChange={e => setAnswers(a=>({...a,[current.key]:current.type==="number"?Number(e.target.value):e.target.value}))}
+              onChange={e => setAnswers(a=>({...a,[current.key]:e.target.value}))}
               onKeyDown={e=>e.key==="Enter"&&handleNext()} />
           )}
         </div>
-        <button style={{ ...S.btn, ...S.btnPrimary, opacity:(!value&&value!==0)||loading?0.4:1 }} onClick={handleNext} disabled={(!value&&value!==0)||loading}>
+        <button style={{ ...S.btn, ...S.btnPrimary, opacity:!hasValue||loading?0.4:1 }} onClick={handleNext} disabled={!hasValue||loading}>
           {loading?"Saving...":step===STEPS.length-1?"Let's Go! 🚀":"Next →"}
         </button>
       </div>
@@ -283,7 +303,6 @@ function Dashboard({ user, profile: initialProfile }) {
 export default function App() {
   const [user, setUser] = useState(null); const [profile, setProfile] = useState(null); const [authLoading, setAuthLoading] = useState(true);
   useEffect(() => {
-    // Timeout safety net -- never stay stuck loading more than 5s
     const timeout = setTimeout(() => setAuthLoading(false), 5000);
     supabase.auth.getSession().then(async({data:{session}})=>{
       if(session?.user){
