@@ -23,17 +23,31 @@ const S = {
 };
 
 function AuthScreen() {
-  const [loading, setLoading] = useState(false); const [error, setError] = useState("");
-  async function handleGoogle() {
-    setLoading(true); setError("");
+  const [mode, setMode] = useState("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+
+  async function handleSubmit() {
+    setLoading(true); setError(""); setMessage("");
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: { redirectTo: window.location.origin }
-      });
-      if (error) throw error;
-    } catch (e) { setError(e.message); setLoading(false); }
+      if (mode === "login") {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.auth.signUp({ email, password });
+        if (error) throw error;
+        setMessage("Account created! Check your email to confirm, then sign in.");
+        setMode("login");
+      }
+    } catch (e) {
+      setError(e.message);
+    }
+    setLoading(false);
   }
+
   return (
     <div style={{ ...S.container, display:"flex", alignItems:"center", justifyContent:"center" }}>
       <div style={{ width:"100%", paddingTop:60 }}>
@@ -44,18 +58,30 @@ function AuthScreen() {
         </div>
         <div style={S.card}>
           {error && <div style={S.error}>{error}</div>}
-          <button onClick={handleGoogle} disabled={loading}
-            style={{ ...S.btn, background:"#fff", color:"#1f2937", display:"flex", alignItems:"center", justifyContent:"center", gap:12, opacity:loading?0.7:1, fontWeight:600, fontSize:15 }}>
-            <svg width="20" height="20" viewBox="0 0 48 48">
-              <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-              <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-              <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-              <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-              <path fill="none" d="M0 0h48v48H0z"/>
-            </svg>
-            {loading ? "Redirecting..." : "Continue with Google"}
+          {message && <div style={{ ...S.error, background:"rgba(34,211,238,0.1)", border:"1px solid rgba(34,211,238,0.3)", color:"#67e8f9" }}>{message}</div>}
+          <div style={{ marginBottom:16 }}>
+            <label style={S.label}>Email</label>
+            <input style={S.input} type="email" placeholder="you@example.com" value={email}
+              onChange={e => setEmail(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleSubmit()} />
+          </div>
+          <div style={{ marginBottom:24 }}>
+            <label style={S.label}>Password</label>
+            <input style={S.input} type="password" placeholder="••••••••" value={password}
+              onChange={e => setPassword(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleSubmit()} />
+          </div>
+          <button onClick={handleSubmit} disabled={loading || !email || !password}
+            style={{ ...S.btn, ...S.btnPrimary, opacity: loading || !email || !password ? 0.5 : 1 }}>
+            {loading ? "..." : mode === "login" ? "Sign In" : "Create Account"}
           </button>
-          <p style={{ textAlign:"center", color:"#475569", fontSize:13, marginTop:16, marginBottom:0 }}>Sign in or create an account — it's free</p>
+          <p style={{ textAlign:"center", color:"#475569", fontSize:14, marginTop:16, marginBottom:0 }}>
+            {mode === "login" ? "Don't have an account? " : "Already have an account? "}
+            <span onClick={() => { setMode(mode === "login" ? "signup" : "login"); setError(""); setMessage(""); }}
+              style={{ color:"#a78bfa", cursor:"pointer", fontWeight:600 }}>
+              {mode === "login" ? "Sign up" : "Sign in"}
+            </span>
+          </p>
         </div>
       </div>
     </div>
@@ -72,7 +98,10 @@ const STEPS = [
 ];
 
 function OnboardingScreen({ user, onComplete }) {
-  const [step, setStep] = useState(0); const [answers, setAnswers] = useState({}); const [loading, setLoading] = useState(false); const [saveError, setSaveError] = useState("");
+  const [step, setStep] = useState(0);
+  const [answers, setAnswers] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const current = STEPS[step];
   const rawValue = answers[current.key] ?? "";
   const value = rawValue;
@@ -87,20 +116,20 @@ function OnboardingScreen({ user, onComplete }) {
     if (payload.sleep_hours) payload.sleep_hours = Number(payload.sleep_hours);
     if (payload.stress_level) payload.stress_level = Number(payload.stress_level);
     try {
-      const { error } = await supabase.from("profiles").update({ ...payload, onboarding_complete: true }).eq("id", user.id);
-      if (error) {
-        console.error("Onboarding save error:", error);
-        setSaveError("Couldn't save — " + error.message + ". Continuing anyway...");
-        setTimeout(() => onComplete({ ...payload, id: user.id, onboarding_complete: true }), 1500);
-      } else {
-        onComplete({ ...payload, id: user.id, onboarding_complete: true });
-      }
+      const { error } = await supabase.from("profiles").upsert({
+        id: user.id,
+        ...payload,
+        onboarding_complete: true
+      });
+      if (error) throw error;
+      onComplete({ ...payload, id: user.id, onboarding_complete: true });
     } catch(e) {
-      console.error("Onboarding exception:", e);
-      onComplete({ ...answers, id: user.id, onboarding_complete: true });
+      console.error("Onboarding save error:", e);
+      setSaveError("Couldn't save — " + e.message);
+      setLoading(false);
     }
-    setLoading(false);
   }
+
   return (
     <div style={{ ...S.container, display:"flex", alignItems:"center", justifyContent:"center" }}>
       <div style={{ width:"100%", paddingTop:60 }}>
@@ -196,7 +225,8 @@ function CheckInModal({ user, onSave, onClose, existingScore }) {
 
 function Dashboard({ user, profile: initialProfile }) {
   const [profile, setProfile] = useState(initialProfile);
-  const [todayScore, setTodayScore] = useState(null); const [history, setHistory] = useState([]);
+  const [todayScore, setTodayScore] = useState(null);
+  const [history, setHistory] = useState([]);
   const [showCheckIn, setShowCheckIn] = useState(false);
   const loadData = useCallback(async () => {
     try {
@@ -300,35 +330,50 @@ function Dashboard({ user, profile: initialProfile }) {
 }
 
 export default function App() {
-  const [user, setUser] = useState(null); const [profile, setProfile] = useState(null); const [authLoading, setAuthLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
   useEffect(() => {
-    const timeout = setTimeout(() => setAuthLoading(false), 5000);
-    supabase.auth.getSession().then(async({data:{session}})=>{
-      if(session?.user){
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
         setUser(session.user);
-        const{data}=await supabase.from("profiles").select("*").eq("id",session.user.id).single();
+        const { data } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
         setProfile(data);
       }
       setAuthLoading(false);
-      clearTimeout(timeout);
-    }).catch(()=>{ setAuthLoading(false); clearTimeout(timeout); });
-    const{data:{subscription}}=supabase.auth.onAuthStateChange(async(event,session)=>{
-      try {
-        if(session?.user){setUser(session.user);const{data}=await supabase.from("profiles").select("*").eq("id",session.user.id).single();setProfile(data);}
-        else{setUser(null);setProfile(null);}
-      } catch(e){ console.error("Auth state change error:", e); }
-    });
-    return()=>{ subscription.unsubscribe(); clearTimeout(timeout); };
-  },[]);
+    }).catch(() => setAuthLoading(false));
 
-  if(authLoading) return <div style={{...S.app,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{textAlign:"center"}}><div style={{fontSize:40,marginBottom:16}}>⚡</div><p style={{color:"#475569"}}>Loading...</p></div></div>;
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        setUser(session.user);
+        const { data } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
+        setProfile(data);
+      } else {
+        setUser(null);
+        setProfile(null);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  if (authLoading) return (
+    <div style={{ ...S.app, display:"flex", alignItems:"center", justifyContent:"center" }}>
+      <div style={{ textAlign:"center" }}>
+        <div style={{ fontSize:40, marginBottom:16 }}>⚡</div>
+        <p style={{ color:"#475569" }}>Loading...</p>
+      </div>
+    </div>
+  );
 
   return (
     <div style={S.app}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" />
-      {!user ? <AuthScreen /> 
-       : !profile?.onboarding_complete ? <OnboardingScreen user={user} onComplete={p=>setProfile({...profile,...p})} />
-       : <Dashboard user={user} profile={profile} />}
+      {!user
+        ? <AuthScreen />
+        : !profile?.onboarding_complete
+          ? <OnboardingScreen user={user} onComplete={p => setProfile({ ...profile, ...p })} />
+          : <Dashboard user={user} profile={profile} />}
     </div>
   );
 }
