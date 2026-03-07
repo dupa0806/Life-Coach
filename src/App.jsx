@@ -44,11 +44,8 @@ function AuthScreen() {
         </div>
         <div style={S.card}>
           {error && <div style={S.error}>{error}</div>}
-          <button
-            onClick={handleGoogle}
-            disabled={loading}
-            style={{ ...S.btn, background:"#fff", color:"#1f2937", display:"flex", alignItems:"center", justifyContent:"center", gap:12, opacity:loading?0.7:1, fontWeight:600, fontSize:15 }}
-          >
+          <button onClick={handleGoogle} disabled={loading}
+            style={{ ...S.btn, background:"#fff", color:"#1f2937", display:"flex", alignItems:"center", justifyContent:"center", gap:12, opacity:loading?0.7:1, fontWeight:600, fontSize:15 }}>
             <svg width="20" height="20" viewBox="0 0 48 48">
               <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
               <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
@@ -58,9 +55,7 @@ function AuthScreen() {
             </svg>
             {loading ? "Redirecting..." : "Continue with Google"}
           </button>
-          <p style={{ textAlign:"center", color:"#475569", fontSize:13, marginTop:16, marginBottom:0 }}>
-            Sign in or create an account — it's free
-          </p>
+          <p style={{ textAlign:"center", color:"#475569", fontSize:13, marginTop:16, marginBottom:0 }}>Sign in or create an account — it's free</p>
         </div>
       </div>
     </div>
@@ -224,7 +219,6 @@ function Dashboard({ user, profile: initialProfile }) {
     <div style={S.container}>
       <div style={{ position:"fixed", width:500, height:500, borderRadius:"50%", background:"radial-gradient(circle,rgba(139,92,246,0.12) 0%,transparent 70%)", top:-100, left:-100, pointerEvents:"none", zIndex:0 }} />
       <div style={{ position:"fixed", width:400, height:400, borderRadius:"50%", background:"radial-gradient(circle,rgba(34,211,238,0.08) 0%,transparent 70%)", bottom:-50, right:-50, pointerEvents:"none", zIndex:0 }} />
-
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"24px 0 8px" }}>
         <div>
           <p style={{ margin:0, color:"#475569", fontSize:13, fontWeight:600 }}>{new Date().toLocaleDateString("en-US",{weekday:"long",month:"short",day:"numeric"})}</p>
@@ -232,7 +226,6 @@ function Dashboard({ user, profile: initialProfile }) {
         </div>
         <button onClick={()=>supabase.auth.signOut().then(()=>window.location.reload())} style={{ padding:"8px 14px", borderRadius:10, border:"1px solid rgba(255,255,255,0.08)", background:"transparent", color:"#64748b", fontSize:13, cursor:"pointer" }}>Sign out</button>
       </div>
-
       <div style={{ display:"flex", gap:10, marginBottom:20 }}>
         {[{label:"Level",value:level,icon:"🏆"},{label:"Streak",value:`${streak}d`,icon:"🔥"},{label:"XP",value:`${xpProgress}/100`,icon:"⚡"}].map(stat=>(
           <div key={stat.label} style={{ flex:1, background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:14, padding:"12px 8px", textAlign:"center" }}>
@@ -242,7 +235,6 @@ function Dashboard({ user, profile: initialProfile }) {
           </div>
         ))}
       </div>
-
       <div style={{ ...S.card, textAlign:"center", position:"relative", overflow:"hidden" }}>
         <div style={{ position:"absolute", inset:0, background:`radial-gradient(circle at 50% 50%,${getScoreColor(life)}08 0%,transparent 70%)` }} />
         <p style={{ margin:"0 0 8px", fontSize:11, fontWeight:700, color:"#475569", letterSpacing:"0.1em", textTransform:"uppercase" }}>TODAY'S LIFE SCORE</p>
@@ -263,7 +255,6 @@ function Dashboard({ user, profile: initialProfile }) {
           ))}
         </div>
       </div>
-
       <div style={S.card}>
         {!todayScore ? (
           <div><p style={{ color:"#475569", fontSize:14, marginBottom:16 }}>No check-in yet today.</p><button style={{ ...S.btn, ...S.btnPrimary }} onClick={()=>setShowCheckIn(true)}>⚡ Start Daily Check-In</button></div>
@@ -276,7 +267,6 @@ function Dashboard({ user, profile: initialProfile }) {
           </div>
         )}
       </div>
-
       {history.length > 1 && (
         <div style={S.card}>
           <p style={{ margin:"0 0 16px", fontSize:11, fontWeight:700, color:"#475569", letterSpacing:"0.1em", textTransform:"uppercase" }}>30-Day Trend</p>
@@ -290,7 +280,6 @@ function Dashboard({ user, profile: initialProfile }) {
           </ResponsiveContainer>
         </div>
       )}
-
       {radarData.some(d=>d.value>0) && (
         <div style={S.card}>
           <p style={{ margin:"0 0 16px", fontSize:11, fontWeight:700, color:"#475569", letterSpacing:"0.1em", textTransform:"uppercase" }}>Life Balance</p>
@@ -303,7 +292,6 @@ function Dashboard({ user, profile: initialProfile }) {
           </ResponsiveContainer>
         </div>
       )}
-
       <div style={{ height:40 }} />
       {showCheckIn && <CheckInModal user={user} existingScore={todayScore?{sleep:todayScore.sleep_score,fitness:todayScore.fitness_score,productivity:todayScore.productivity_score,money:todayScore.money_score,mood:todayScore.mood_score}:null}
         onSave={async()=>{setShowCheckIn(false);await loadData();}} onClose={()=>setShowCheckIn(false)} />}
@@ -338,7 +326,7 @@ export default function App() {
   return (
     <div style={S.app}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" />
-      {!user ? <AuthScreen />
+      {!user ? <AuthScreen /> 
        : !profile?.onboarding_complete ? <OnboardingScreen user={user} onComplete={p=>setProfile({...profile,...p})} />
        : <Dashboard user={user} profile={profile} />}
     </div>
