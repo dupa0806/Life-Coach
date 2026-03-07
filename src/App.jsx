@@ -48,7 +48,7 @@ function AuthScreen({ onAuth }) {
           {error && <div style={S.error}>{error}</div>}
           {msg && <div style={{ ...S.error, background:"rgba(34,211,238,0.1)", border:"1px solid rgba(34,211,238,0.3)", color:"#67e8f9" }}>{msg}</div>}
           <div style={{ marginBottom:16 }}><label style={S.label}>Email</label><input style={S.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleSubmit()} /></div>
-          <div style={{ marginBottom:24 }}><label style={S.label}>Password</label><input style={S.input} type="password" placeholder="••••••••" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleSubmit()} /></div>
+          <div style={{ marginBottom:24 }}><label style={S.label}>Password</label><input style={S.input} type="password" placeholder="········" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleSubmit()} /></div>
           <button style={{ ...S.btn, ...S.btnPrimary, opacity:loading?0.7:1 }} onClick={handleSubmit} disabled={loading}>{loading?"...":mode==="login"?"Log In →":"Create Account →"}</button>
         </div>
       </div>
@@ -106,26 +106,26 @@ function OnboardingScreen({ user, onComplete }) {
   );
 }
 
-function ScoreRing({ score, size=160, stroke=10 }) {
-  const r=(size-stroke)/2, circ=2*Math.PI*r, color=getScoreColor(score);
+function ScoreRing({ score, size = 160 }) {
+  const color = getScoreColor(score);
+  const stroke = 14;
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  const offset = circ - (score / 100) * circ;
   return (
-    <div style={{ position:"relative", width:size, height:size }}>
-      <svg width={size} height={size} style={{ transform:"rotate(-90deg)" }}>
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={stroke} />
-        <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke} strokeDasharray={circ} strokeDashoffset={circ-(score/100)*circ} strokeLinecap="round" style={{ transition:"stroke-dashoffset 1s ease,stroke 0.5s" }} />
-      </svg>
-      <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center" }}>
-        <span style={{ fontSize:size*0.28, fontWeight:800, color, lineHeight:1, letterSpacing:"-0.03em" }}>{score}</span>
-        <span style={{ fontSize:size*0.1, color:"#64748b", fontWeight:600, marginTop:2 }}>{getScoreLabel(score)}</span>
-      </div>
-    </div>
+    <svg width={size} height={size} style={{ transform:"rotate(-90deg)" }}>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={stroke} />
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke}
+        strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
+        style={{ transition:"stroke-dashoffset 1s ease, stroke 0.5s" }} />
+    </svg>
   );
 }
 
 function ScoreSlider({ label, emoji, value, onChange, color }) {
   return (
     <div style={{ marginBottom:20 }}>
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
         <span style={{ fontSize:14, color:"#94a3b8", fontWeight:600 }}>{emoji} {label}</span>
         <span style={{ fontSize:16, fontWeight:800, color }}>{value}</span>
       </div>
@@ -173,11 +173,13 @@ function Dashboard({ user, profile: initialProfile }) {
   const [todayScore, setTodayScore] = useState(null); const [history, setHistory] = useState([]);
   const [showCheckIn, setShowCheckIn] = useState(false);
   const loadData = useCallback(async () => {
-    const today = new Date().toISOString().split("T")[0];
-    const { data: scores } = await supabase.from("daily_scores").select("*").eq("user_id",user.id).order("date",{ascending:false}).limit(30);
-    if (scores) { setHistory(scores); setTodayScore(scores.find(s=>s.date===today)||null); }
-    const { data: prof } = await supabase.from("profiles").select("*").eq("id",user.id).single();
-    if (prof) setProfile(prof);
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      const { data: scores } = await supabase.from("daily_scores").select("*").eq("user_id",user.id).order("date",{ascending:false}).limit(30);
+      if (scores) { setHistory(scores); setTodayScore(scores.find(s=>s.date===today)||null); }
+      const { data: prof } = await supabase.from("profiles").select("*").eq("id",user.id).single();
+      if (prof) setProfile(prof);
+    } catch(e) { console.error("loadData error:", e); }
   }, [user.id]);
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -200,76 +202,79 @@ function Dashboard({ user, profile: initialProfile }) {
         <button onClick={()=>supabase.auth.signOut().then(()=>window.location.reload())} style={{ padding:"8px 14px", borderRadius:10, border:"1px solid rgba(255,255,255,0.08)", background:"transparent", color:"#64748b", fontSize:13, cursor:"pointer" }}>Sign out</button>
       </div>
 
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10, marginBottom:16 }}>
+      <div style={{ display:"flex", gap:10, marginBottom:20 }}>
         {[{label:"Level",value:level,icon:"🏆"},{label:"Streak",value:`${streak}d`,icon:"🔥"},{label:"XP",value:`${xpProgress}/100`,icon:"⚡"}].map(stat=>(
-          <div key={stat.label} style={{ ...S.card, padding:"14px 12px", textAlign:"center", marginBottom:0 }}>
-            <div style={{ fontSize:20, marginBottom:4 }}>{stat.icon}</div>
+          <div key={stat.label} style={{ flex:1, background:"rgba(255,255,255,0.04)", border:"1px solid rgba(255,255,255,0.08)", borderRadius:14, padding:"12px 8px", textAlign:"center" }}>
+            <div style={{ fontSize:18, marginBottom:4 }}>{stat.icon}</div>
             <div style={{ fontSize:18, fontWeight:800, color:"#f1f5f9" }}>{stat.value}</div>
-            <div style={{ fontSize:11, color:"#475569", fontWeight:600, textTransform:"uppercase" }}>{stat.label}</div>
+            <div style={{ fontSize:11, color:"#475569", fontWeight:600, textTransform:"uppercase", letterSpacing:"0.06em" }}>{stat.label}</div>
           </div>
         ))}
       </div>
 
-      <div style={{ marginBottom:16 }}>
-        <div style={{ height:4, background:"rgba(255,255,255,0.06)", borderRadius:99, overflow:"hidden" }}>
-          <div style={{ height:"100%", width:`${xpProgress}%`, background:"linear-gradient(90deg,#7c3aed,#06b6d4)", transition:"width 1s ease" }} />
+      <div style={{ ...S.card, textAlign:"center", position:"relative", overflow:"hidden" }}>
+        <div style={{ position:"absolute", inset:0, background:`radial-gradient(circle at 50% 50%,${getScoreColor(life)}08 0%,transparent 70%)` }} />
+        <p style={{ margin:"0 0 8px", fontSize:11, fontWeight:700, color:"#475569", letterSpacing:"0.1em", textTransform:"uppercase" }}>TODAY'S LIFE SCORE</p>
+        <div style={{ position:"relative", display:"inline-block" }}>
+          <ScoreRing score={life} size={160} />
+          <div style={{ position:"absolute", inset:0, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center" }}>
+            <span style={{ fontSize:44, fontWeight:800, color:getScoreColor(life), lineHeight:1, letterSpacing:"-0.03em" }}>{life}</span>
+            <span style={{ fontSize:13, color:"#64748b", fontWeight:600, marginTop:4 }}>{getScoreLabel(life)}</span>
+          </div>
+        </div>
+        <div style={{ display:"flex", justifyContent:"space-between", marginTop:20, paddingTop:16, borderTop:"1px solid rgba(255,255,255,0.06)" }}>
+          {categories.map(c=>(
+            <div key={c.key} style={{ textAlign:"center" }}>
+              <div style={{ fontSize:14 }}>{c.emoji}</div>
+              <div style={{ fontSize:14, fontWeight:700, color:c.color, marginTop:2 }}>{todayScore?.[c.key]??"--"}</div>
+              <div style={{ fontSize:10, color:"#475569", fontWeight:600, marginTop:2 }}>{c.label.toUpperCase()}</div>
+            </div>
+          ))}
         </div>
       </div>
 
-      <div style={{ ...S.card, textAlign:"center" }}>
-        <p style={{ margin:"0 0 20px", fontSize:12, fontWeight:700, color:"#475569", textTransform:"uppercase", letterSpacing:"0.12em" }}>Daily Life Score</p>
-        <div style={{ display:"flex", justifyContent:"center", marginBottom:20 }}><ScoreRing score={life} size={180} stroke={12} /></div>
+      <div style={S.card}>
         {!todayScore ? (
           <div><p style={{ color:"#475569", fontSize:14, marginBottom:16 }}>No check-in yet today.</p><button style={{ ...S.btn, ...S.btnPrimary }} onClick={()=>setShowCheckIn(true)}>⚡ Start Daily Check-In</button></div>
-        ) : <button style={{ ...S.btn, ...S.btnSecondary }} onClick={()=>setShowCheckIn(true)}>✏️ Update Today's Score</button>}
-      </div>
-
-      {todayScore && (
-        <div style={S.card}>
-          <p style={{ margin:"0 0 16px", fontSize:12, fontWeight:700, color:"#475569", textTransform:"uppercase", letterSpacing:"0.1em" }}>Category Breakdown</p>
-          {categories.map(c => { const val=todayScore[c.key]??0; return (
-            <div key={c.key} style={{ marginBottom:14 }}>
-              <div style={{ display:"flex", justifyContent:"space-between", marginBottom:6 }}>
-                <span style={{ fontSize:13, color:"#94a3b8" }}>{c.emoji} {c.label}</span>
-                <span style={{ fontSize:14, fontWeight:700, color:c.color }}>{val}</span>
-              </div>
-              <div style={{ height:5, background:"rgba(255,255,255,0.06)", borderRadius:99, overflow:"hidden" }}>
-                <div style={{ height:"100%", width:`${val}%`, background:c.color, borderRadius:99, transition:"width 1s ease" }} />
-              </div>
+        ) : (
+          <div>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+              <p style={{ margin:0, color:"#94a3b8", fontSize:14, fontWeight:600 }}>✅ Checked in today</p>
+              <button onClick={()=>setShowCheckIn(true)} style={{ padding:"6px 14px", borderRadius:10, border:"1px solid rgba(255,255,255,0.1)", background:"transparent", color:"#94a3b8", fontSize:13, cursor:"pointer" }}>Edit</button>
             </div>
-          );})}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
 
       {history.length > 1 && (
         <div style={S.card}>
-          <p style={{ margin:"0 0 20px", fontSize:12, fontWeight:700, color:"#475569", textTransform:"uppercase", letterSpacing:"0.1em" }}>Life Score Trend</p>
-          <ResponsiveContainer width="100%" height={150}>
+          <p style={{ margin:"0 0 16px", fontSize:11, fontWeight:700, color:"#475569", letterSpacing:"0.1em", textTransform:"uppercase" }}>30-Day Trend</p>
+          <ResponsiveContainer width="100%" height={120}>
             <LineChart data={chartData}>
-              <XAxis dataKey="date" tick={{fill:"#475569",fontSize:11}} axisLine={false} tickLine={false} />
-              <YAxis domain={[0,100]} tick={{fill:"#475569",fontSize:11}} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{background:"#0f1629",border:"1px solid rgba(255,255,255,0.1)",borderRadius:10,color:"#e2e8f0"}} />
-              <Line type="monotone" dataKey="score" stroke="#a78bfa" strokeWidth={2.5} dot={{fill:"#a78bfa",r:3}} activeDot={{r:5}} />
+              <XAxis dataKey="date" tick={{ fontSize:10, fill:"#475569" }} axisLine={false} tickLine={false} />
+              <YAxis domain={[0,100]} tick={{ fontSize:10, fill:"#475569" }} axisLine={false} tickLine={false} width={24} />
+              <Tooltip contentStyle={{ background:"#0f1629", border:"1px solid rgba(255,255,255,0.1)", borderRadius:10, fontSize:12, color:"#e2e8f0" }} />
+              <Line type="monotone" dataKey="score" stroke="#a78bfa" strokeWidth={2} dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
       )}
 
-      {todayScore && (
-        <div style={{ ...S.card, marginBottom:40 }}>
-          <p style={{ margin:"0 0 16px", fontSize:12, fontWeight:700, color:"#475569", textTransform:"uppercase", letterSpacing:"0.1em" }}>Balance Radar</p>
+      {radarData.some(d=>d.value>0) && (
+        <div style={S.card}>
+          <p style={{ margin:"0 0 16px", fontSize:11, fontWeight:700, color:"#475569", letterSpacing:"0.1em", textTransform:"uppercase" }}>Life Balance</p>
           <ResponsiveContainer width="100%" height={200}>
             <RadarChart data={radarData}>
-              <PolarGrid stroke="rgba(255,255,255,0.07)" />
-              <PolarAngleAxis dataKey="subject" tick={{fill:"#64748b",fontSize:12}} />
-              <Radar dataKey="value" stroke="#7c3aed" fill="#7c3aed" fillOpacity={0.25} strokeWidth={2} />
+              <PolarGrid stroke="rgba(255,255,255,0.06)" />
+              <PolarAngleAxis dataKey="subject" tick={{ fontSize:11, fill:"#64748b" }} />
+              <Radar dataKey="value" stroke="#a78bfa" fill="#a78bfa" fillOpacity={0.15} strokeWidth={2} />
             </RadarChart>
           </ResponsiveContainer>
         </div>
       )}
 
-      {showCheckIn && <CheckInModal user={user}
-        existingScore={todayScore?{sleep:todayScore.sleep_score,fitness:todayScore.fitness_score,productivity:todayScore.productivity_score,money:todayScore.money_score,mood:todayScore.mood_score}:null}
+      <div style={{ height:40 }} />
+      {showCheckIn && <CheckInModal user={user} existingScore={todayScore?{sleep:todayScore.sleep_score,fitness:todayScore.fitness_score,productivity:todayScore.productivity_score,money:todayScore.money_score,mood:todayScore.mood_score}:null}
         onSave={async()=>{setShowCheckIn(false);await loadData();}} onClose={()=>setShowCheckIn(false)} />}
     </div>
   );
@@ -278,15 +283,24 @@ function Dashboard({ user, profile: initialProfile }) {
 export default function App() {
   const [user, setUser] = useState(null); const [profile, setProfile] = useState(null); const [authLoading, setAuthLoading] = useState(true);
   useEffect(() => {
+    // Timeout safety net -- never stay stuck loading more than 5s
+    const timeout = setTimeout(() => setAuthLoading(false), 5000);
     supabase.auth.getSession().then(async({data:{session}})=>{
-      if(session?.user){setUser(session.user);const{data}=await supabase.from("profiles").select("*").eq("id",session.user.id).single();setProfile(data);}
+      if(session?.user){
+        setUser(session.user);
+        const{data}=await supabase.from("profiles").select("*").eq("id",session.user.id).single();
+        setProfile(data);
+      }
       setAuthLoading(false);
-    });
+      clearTimeout(timeout);
+    }).catch(()=>{ setAuthLoading(false); clearTimeout(timeout); });
     const{data:{subscription}}=supabase.auth.onAuthStateChange(async(event,session)=>{
-      if(session?.user){setUser(session.user);const{data}=await supabase.from("profiles").select("*").eq("id",session.user.id).single();setProfile(data);}
-      else{setUser(null);setProfile(null);}
+      try {
+        if(session?.user){setUser(session.user);const{data}=await supabase.from("profiles").select("*").eq("id",session.user.id).single();setProfile(data);}
+        else{setUser(null);setProfile(null);}
+      } catch(e){ console.error("Auth state change error:", e); }
     });
-    return()=>subscription.unsubscribe();
+    return()=>{ subscription.unsubscribe(); clearTimeout(timeout); };
   },[]);
 
   if(authLoading) return <div style={{...S.app,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{textAlign:"center"}}><div style={{fontSize:40,marginBottom:16}}>⚡</div><p style={{color:"#475569"}}>Loading...</p></div></div>;
