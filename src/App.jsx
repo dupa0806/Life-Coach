@@ -22,16 +22,17 @@ const S = {
   error: { background:"rgba(248,113,113,0.1)", border:"1px solid rgba(248,113,113,0.3)", borderRadius:10, padding:"10px 14px", color:"#fca5a5", fontSize:14, marginBottom:16 },
 };
 
-function AuthScreen({ onAuth }) {
-  const [mode, setMode] = useState("login");
-  const [email, setEmail] = useState(""); const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false); const [error, setError] = useState(""); const [msg, setMsg] = useState("");
-  async function handleSubmit() {
-    setLoading(true); setError(""); setMsg("");
+function AuthScreen() {
+  const [loading, setLoading] = useState(false); const [error, setError] = useState("");
+  async function handleGoogle() {
+    setLoading(true); setError("");
     try {
-      if (mode === "login") { const { data, error } = await supabase.auth.signInWithPassword({ email, password }); if (error) throw error; onAuth(data.user); }
-      else { const { error } = await supabase.auth.signUp({ email, password }); if (error) throw error; setMsg("Account created! Check your email to confirm, then log in."); setMode("login"); }
-    } catch (e) { setError(e.message); } finally { setLoading(false); }
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: window.location.origin }
+      });
+      if (error) throw error;
+    } catch (e) { setError(e.message); setLoading(false); }
   }
   return (
     <div style={{ ...S.container, display:"flex", alignItems:"center", justifyContent:"center" }}>
@@ -42,14 +43,24 @@ function AuthScreen({ onAuth }) {
           <p style={{ color:"#64748b", fontSize:15, marginTop:8 }}>Gamify your daily life</p>
         </div>
         <div style={S.card}>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", background:"rgba(255,255,255,0.04)", borderRadius:12, padding:4, marginBottom:24 }}>
-            {["login","signup"].map(m => <button key={m} onClick={() => setMode(m)} style={{ padding:"10px", borderRadius:10, border:"none", fontSize:14, fontWeight:600, cursor:"pointer", background:mode===m?"rgba(124,58,237,0.5)":"transparent", color:mode===m?"#c4b5fd":"#64748b" }}>{m==="login"?"Log In":"Sign Up"}</button>)}
-          </div>
           {error && <div style={S.error}>{error}</div>}
-          {msg && <div style={{ ...S.error, background:"rgba(34,211,238,0.1)", border:"1px solid rgba(34,211,238,0.3)", color:"#67e8f9" }}>{msg}</div>}
-          <div style={{ marginBottom:16 }}><label style={S.label}>Email</label><input style={S.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleSubmit()} /></div>
-          <div style={{ marginBottom:24 }}><label style={S.label}>Password</label><input style={S.input} type="password" placeholder="········" value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleSubmit()} /></div>
-          <button style={{ ...S.btn, ...S.btnPrimary, opacity:loading?0.7:1 }} onClick={handleSubmit} disabled={loading}>{loading?"...":mode==="login"?"Log In →":"Create Account →"}</button>
+          <button
+            onClick={handleGoogle}
+            disabled={loading}
+            style={{ ...S.btn, background:"#fff", color:"#1f2937", display:"flex", alignItems:"center", justifyContent:"center", gap:12, opacity:loading?0.7:1, fontWeight:600, fontSize:15 }}
+          >
+            <svg width="20" height="20" viewBox="0 0 48 48">
+              <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+              <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+              <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+              <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+              <path fill="none" d="M0 0h48v48H0z"/>
+            </svg>
+            {loading ? "Redirecting..." : "Continue with Google"}
+          </button>
+          <p style={{ textAlign:"center", color:"#475569", fontSize:13, marginTop:16, marginBottom:0 }}>
+            Sign in or create an account — it's free
+          </p>
         </div>
       </div>
     </div>
@@ -327,7 +338,7 @@ export default function App() {
   return (
     <div style={S.app}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" />
-      {!user ? <AuthScreen onAuth={async u=>{setUser(u);const{data}=await supabase.from("profiles").select("*").eq("id",u.id).single();setProfile(data);}} />
+      {!user ? <AuthScreen />
        : !profile?.onboarding_complete ? <OnboardingScreen user={user} onComplete={p=>setProfile({...profile,...p})} />
        : <Dashboard user={user} profile={profile} />}
     </div>
