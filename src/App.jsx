@@ -218,7 +218,7 @@ function Dashboard({ user, profile: initialProfile }) {
 
       <div style={{ ...S.card, textAlign:"center" }}>
         <p style={{ margin:"0 0 20px", fontSize:12, fontWeight:700, color:"#475569", textTransform:"uppercase", letterSpacing:"0.12em" }}>Daily Life Score</p>
-        <div style={{ display:"flex", justifyContent:"center", marginBottom :20 }}><ScoreRing score={life} size={180} stroke={12} /></div>
+        <div style={{ display:"flex", justifyContent:"center", marginBottom:20 }}><ScoreRing score={life} size={180} stroke={12} /></div>
         {!todayScore ? (
           <div><p style={{ color:"#475569", fontSize:14, marginBottom:16 }}>No check-in yet today.</p><button style={{ ...S.btn, ...S.btnPrimary }} onClick={()=>setShowCheckIn(true)}>⚡ Start Daily Check-In</button></div>
         ) : <button style={{ ...S.btn, ...S.btnSecondary }} onClick={()=>setShowCheckIn(true)}>✏️ Update Today's Score</button>}
@@ -249,7 +249,7 @@ function Dashboard({ user, profile: initialProfile }) {
               <XAxis dataKey="date" tick={{fill:"#475569",fontSize:11}} axisLine={false} tickLine={false} />
               <YAxis domain={[0,100]} tick={{fill:"#475569",fontSize:11}} axisLine={false} tickLine={false} />
               <Tooltip contentStyle={{background:"#0f1629",border:"1px solid rgba(255,255,255,0.1)",borderRadius:10,color:"#e2e8f0"}} />
-              <Line type="monotone" dataKey="score" stroke="#a78bfa" strokeWidth={2.5} dot={{fill:"#a78bfa",�:3}} activeDot={{r:5}} />
+              <Line type="monotone" dataKey="score" stroke="#a78bfa" strokeWidth={2.5} dot={{fill:"#a78bfa",r:3}} activeDot={{r:5}} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -270,7 +270,7 @@ function Dashboard({ user, profile: initialProfile }) {
 
       {showCheckIn && <CheckInModal user={user}
         existingScore={todayScore?{sleep:todayScore.sleep_score,fitness:todayScore.fitness_score,productivity:todayScore.productivity_score,money:todayScore.money_score,mood:todayScore.mood_score}:null}
-        onSave={async()=>{ssetShowCheckIn(false);await loadData();}} onClose={()=>setShowCheckIn(false)} />}
+        onSave={async()=>{setShowCheckIn(false);await loadData();}} onClose={()=>setShowCheckIn(false)} />}
     </div>
   );
 }
@@ -282,7 +282,7 @@ export default function App() {
       if(session?.user){setUser(session.user);const{data}=await supabase.from("profiles").select("*").eq("id",session.user.id).single();setProfile(data);}
       setAuthLoading(false);
     });
-    const{data:{sbscription}}=supabase.auth.onAuthStateChange(async(event,session)=>{
+    const{data:{subscription}}=supabase.auth.onAuthStateChange(async(event,session)=>{
       if(session?.user){setUser(session.user);const{data}=await supabase.from("profiles").select("*").eq("id",session.user.id).single();setProfile(data);}
       else{setUser(null);setProfile(null);}
     });
@@ -294,7 +294,7 @@ export default function App() {
   return (
     <div style={S.app}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" />
-      {!user ? <AuthScreen onAuth={async u=>{ssetUser(u);const{data}=await supabase.from("profiles").select("*").eq("id",u.id).single();setProfile(data);}} />
+      {!user ? <AuthScreen onAuth={async u=>{setUser(u);const{data}=await supabase.from("profiles").select("*").eq("id",u.id).single();setProfile(data);}} />
        : !profile?.onboarding_complete ? <OnboardingScreen user={user} onComplete={p=>setProfile({...profile,...p})} />
        : <Dashboard user={user} profile={profile} />}
     </div>
