@@ -3,32 +3,18 @@
 ## Setup
 
 ```bash
-cd mobile
-npm install
-cp .env.example .env
-npx expo start
+cd mobile && npm install && cp .env.example .env && npx expo start
 ```
 
-## Building for iOS
+## Build for iOS (requires Apple Developer account $99/yr)
 
 ```bash
-npm install -g eas-cli
-eas login
-eas build --platform ios
+npm install -g eas-cli && eas login && eas build --platform ios
 ```
 
-## Architecture
-
-- `src/hooks/useHealthKit.ts` - HealthKit permissions + data reading
-- `src/screens/DashboardScreen.tsx` - Main dashboard UI  
+## Files
+- `src/hooks/useHealthKit.ts` - HealthKit permissions + 8 data points
+- `src/screens/DashboardScreen.tsx` - Dashboard UI
 - `src/lib/supabase.ts` - Supabase client
 
-## Score Weights
-
-| Metric | Weight |
-|--------|--------|
-| Sleep (vs 8hr) | 25% |
-| Steps + Exercise | 25% |
-| Active Calories | 20% |
-| Heart Rate health | 15% |
-| Stand Hours | 15% |
+## Score weights: Sleep 25% | Steps+Exercise 25% | Calories 20% | Heart 15% | Stand 15%
