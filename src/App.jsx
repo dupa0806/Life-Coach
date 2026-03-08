@@ -587,29 +587,45 @@ function Dashboard({ user, profile: initialProfile }) {
 export default function App() {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
-  const [authLoading, setAuthLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        setUser(session.user);
-        const { data } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
-        setProfile(data);
-      }
-      setAuthLoading(false);
-    }).catch(() => setAuthLoading(false));
+    let mounted = true;
 
+    // Single source of truth: onAuthStateChange fires INITIAL_SESSION on mount
+    // so we don't need a separate getSession() call (which causes a race condition).
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+
+      // Ignore background token refreshes — no UI change needed
+      if (event === "TOKEN_REFRESHED") return;
+
+      // Show loading spinner while we resolve auth + profile together
+      setLoading(true);
+
       if (session?.user) {
         setUser(session.user);
-        const { data } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
-        setProfile(data);
-      } else { setUser(null); setProfile(null); }
+        try {
+          const { data } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
+          if (mounted) setProfile(data ?? null);
+        } catch {
+          if (mounted) setProfile(null);
+        }
+      } else {
+        setUser(null);
+        setProfile(null);
+      }
+
+      if (mounted) setLoading(false);
     });
-    return () => subscription.unsubscribe();
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
-  if (authLoading) return (
+  if (loading) return (
     <div style={{ ...S.app, display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ textAlign: "center" }}>
         <div style={{ fontSize: 40, marginBottom: 16 }}>🎮</div>
@@ -622,9 +638,9 @@ export default function App() {
     <div style={S.app}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" />
       {!user
-        ? <AuthScreen />
+      0 ? <AuthScreen />
         : !profile?.onboarding_complete
-          ? <OnboardingScreen user={user} onComplete={p => setProfile({ ...profile, ...p })} />
+          ? <OnboardingScreen user={user} onComplete={p => setProfile(prev => ({ ...prev, ...p }))} />
           : <Dashboard user={user} profile={profile} />}
     </div>
   );
