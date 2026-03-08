@@ -638,7 +638,7 @@ export default function App() {
     <div style={S.app}>
       <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" />
       {!user
-      0 ? <AuthScreen />
+        ? <AuthScreen />
         : !profile?.onboarding_complete
           ? <OnboardingScreen user={user} onComplete={p => setProfile(prev => ({ ...prev, ...p }))} />
           : <Dashboard user={user} profile={profile} />}
